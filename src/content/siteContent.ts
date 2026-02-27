@@ -68,7 +68,7 @@ export interface SiteContent {
 
 export const siteContent: SiteContent = {
   siteConfig: {
-    name: "Kazuma Ito",
+    name: "Kazuma Hakushi",
     tagline: "Building controlled intelligence interfaces for real-world systems.",
     accentColor: "#FF8A1A",
     links: {

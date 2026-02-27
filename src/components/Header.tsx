@@ -7,9 +7,6 @@ export const Header = (): JSX.Element => {
         <p className="font-mono text-[0.69rem] uppercase tracking-[0.22em] text-muted">
           {siteContent.siteConfig.name}
         </p>
-        <p className="mt-2 max-w-xs text-xs leading-relaxed text-fg/72 sm:text-sm">
-          {siteContent.siteConfig.tagline}
-        </p>
       </div>
 
       <nav

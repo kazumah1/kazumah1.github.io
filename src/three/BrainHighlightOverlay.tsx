@@ -30,7 +30,7 @@ export const BrainHighlightOverlay = ({
   regionPointIndices,
     pointTexture,
     accentColor,
-  haloOpacityScale = 1
+  haloOpacityScale = 0.2
 }: BrainHighlightOverlayProps): JSX.Element => {
   const overlayPointsRef = useRef<THREE.Points>(null);
   const haloPointsRef = useRef<THREE.Points>(null);
@@ -109,6 +109,7 @@ export const BrainHighlightOverlay = ({
           ref={haloMaterialRef}
           transparent
           depthWrite={false}
+          depthTest={false}
           size={POINT_SIZE * OVERLAY_POINT_SCALE}
           sizeAttenuation
           map={pointTexture ?? undefined}
@@ -116,7 +117,7 @@ export const BrainHighlightOverlay = ({
           alphaTest={0.06}
           opacity={0}
           color={accentColor}
-          blending={THREE.AdditiveBlending}
+          blending={THREE.NormalBlending}
           toneMapped={false}
         />
       </points>
@@ -126,6 +127,7 @@ export const BrainHighlightOverlay = ({
           ref={overlayMaterialRef}
           transparent
           depthWrite={false}
+          depthTest={false}
           size={POINT_SIZE * OVERLAY_POINT_SCALE}
           sizeAttenuation
           map={pointTexture ?? undefined}

@@ -5,18 +5,26 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import type { SectionId } from "@/content/siteContent";
+import type { BrainPose } from "@/components/TransitionProvider";
 import { useUIStore } from "@/lib/store";
 
 import { BrainPoints, type PointerState } from "./BrainPoints";
-import { CAMERA_DISTANCE, FOG_FAR, FOG_NEAR } from "./brainTuning";
+import { CAMERA_DISTANCE, CAMERA_FOV, FOG_FAR, FOG_NEAR } from "./brainTuning";
 
-export const BrainScene = (): JSX.Element => {
+interface BrainSceneProps {
+  navigationSectionId?: SectionId | null;
+  onNavigationPose?: (pose: BrainPose) => void;
+}
+
+export const BrainScene = ({
+  navigationSectionId = null,
+  onNavigationPose
+}: BrainSceneProps): JSX.Element => {
   const hoveredSectionId = useUIStore((state) => state.hoveredSectionId);
   const isModalOpen = useUIStore((state) => state.isModalOpen);
   const isScrolling = useUIStore((state) => state.isScrolling);
   const prefersReducedMotion = useUIStore((state) => state.prefersReducedMotion);
 
-  const [isCanvasReady, setCanvasReady] = useState(false);
   const [showDebugAnchors, setShowDebugAnchors] = useState(false);
   const [showSpotLegend, setShowSpotLegend] = useState(false);
   const [showAllSpotsDebug, setShowAllSpotsDebug] = useState(false);
@@ -25,7 +33,10 @@ export const BrainScene = (): JSX.Element => {
   const pointerRef = useRef<PointerState>({ x: 0, y: 0, inside: false });
 
   const camera = useMemo(
-    () => ({ position: [0, 0, CAMERA_DISTANCE] as [number, number, number], fov: 36 }),
+    () => ({
+      position: [0, 0, CAMERA_DISTANCE] as [number, number, number],
+      fov: CAMERA_FOV
+    }),
     []
   );
 
@@ -109,12 +120,6 @@ export const BrainScene = (): JSX.Element => {
 
   return (
     <div className="relative h-full w-full" aria-label="Interactive brain scene">
-      {!isCanvasReady ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-muted">
-          Calibrating instrument...
-        </div>
-      ) : null}
-
       <Canvas
         className="h-full w-full"
         camera={camera}
@@ -122,7 +127,6 @@ export const BrainScene = (): JSX.Element => {
         gl={{ antialias: true, alpha: true }}
         onCreated={({ gl }) => {
           gl.setClearColor(new THREE.Color("#0b0c0f"), 1);
-          setCanvasReady(true);
         }}
       >
         <fog attach="fog" args={["#0b0c0f", FOG_NEAR, FOG_FAR]} />
@@ -134,6 +138,8 @@ export const BrainScene = (): JSX.Element => {
           <BrainPoints
             pointerRef={pointerRef}
             hoveredSectionId={hoveredSectionId}
+            navigationSectionId={navigationSectionId}
+            onNavigationPose={onNavigationPose}
             isModalOpen={isModalOpen}
             isScrolling={isScrolling}
             prefersReducedMotion={prefersReducedMotion}

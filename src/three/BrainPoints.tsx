@@ -1,29 +1,25 @@
 "use client";
 
 import { Html } from "@react-three/drei";
-import { ThreeEvent, useFrame, useThree } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef } from "react";
 import type { RefObject } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
 import { BrainLeaderLabel } from "@/components/BrainLeaderLabel";
+import type { BrainPose } from "@/components/TransitionProvider";
 import type { SectionId } from "@/content/siteContent";
 import { siteContent } from "@/content/siteContent";
-import { useUIStore } from "@/lib/store";
 import { clamp, lerp } from "@/lib/utils";
 
 import { BrainHighlightOverlay } from "./BrainHighlightOverlay";
 import {
-  buildBrainSpots,
   getSpotSectionColor,
-  type BrainSpotsData,
   SECTION_SPOT_MAP
 } from "./brainSpots";
-import { sampleCortexSurface } from "./brainSampling";
 import type { BrainPhysicsState } from "./brainPhysics";
 import { createBrainPhysicsState, updateBrainPhysics } from "./brainPhysics";
+import { useBrainSharedData } from "./brainShared";
 import {
   BLENDING_MODE,
   CURSOR_BLEND_WHILE_FOCUS,
@@ -33,18 +29,18 @@ import {
   HALO_SCALE,
   HALO_TINT,
   MODAL_ROTATION_SCALE,
-  PICK_THRESHOLD,
+  NAVIGATION_CURSOR_BLEND,
+  NAVIGATION_SCALE_TARGET,
+  NAVIGATION_TRANSFORM_LERP,
+  NAVIGATION_Y_TARGET,
   PITCH_MAX,
-  POINT_COUNT_TOTAL,
   POINT_OPACITY,
   POINT_SIZE,
   REDUCED_MOTION_ROTATION_SCALE,
   ROTATION_LERP,
   SCROLL_ROTATION_SCALE,
-  SPOT_FRACTION,
   YAW_MAX
 } from "./brainTuning";
-import { isPointerNearBrainProjection } from "./picking";
 
 export interface PointerState {
   x: number;
@@ -55,6 +51,8 @@ export interface PointerState {
 interface BrainPointsProps {
   pointerRef: RefObject<PointerState>;
   hoveredSectionId: SectionId | null;
+  navigationSectionId: SectionId | null;
+  onNavigationPose?: (pose: BrainPose) => void;
   isModalOpen: boolean;
   isScrolling: boolean;
   prefersReducedMotion: boolean;
@@ -64,17 +62,13 @@ interface BrainPointsProps {
 }
 
 const ACCENT = new THREE.Color(siteContent.siteConfig.accentColor);
-const RAYCASTER = new THREE.Raycaster();
-const POINTER_VECTOR = new THREE.Vector2();
-const PLANE = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-const INTERSECTION_WORLD = new THREE.Vector3();
-const INTERSECTION_LOCAL = new THREE.Vector3();
 const TARGET_FORWARD = new THREE.Vector3(0, 0, 1);
 const ANCHOR_VECTOR = new THREE.Vector3();
 const EULER_CURSOR = new THREE.Euler();
 const Q_CURSOR = new THREE.Quaternion();
 const Q_FOCUS = new THREE.Quaternion();
 const Q_TARGET = new THREE.Quaternion();
+const Q_WORLD = new THREE.Quaternion();
 const HORIZONTAL_FOCUS_SECTIONS = new Set<SectionId>([
   "leadership",
   "interests"
@@ -107,27 +101,11 @@ const createPointSpriteTexture = (): THREE.CanvasTexture => {
   return texture;
 };
 
-const countMeshes = (root: THREE.Object3D): number => {
-  let count = 0;
-  root.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      count += 1;
-    }
-  });
-  return count;
-};
-
-const loadObject = (
-  loader: OBJLoader,
-  url: string
-): Promise<THREE.Object3D> =>
-  new Promise((resolve, reject) => {
-    loader.load(url, resolve, undefined, reject);
-  });
-
 export const BrainPoints = ({
   pointerRef,
   hoveredSectionId,
+  navigationSectionId,
+  onNavigationPose,
   isModalOpen,
   isScrolling,
   prefersReducedMotion,
@@ -135,13 +113,10 @@ export const BrainPoints = ({
   debugPreviewSectionId,
   debugShowAllSpots
 }: BrainPointsProps): JSX.Element => {
-  const openSection = useUIStore((state) => state.openSection);
-  const { raycaster } = useThree();
-
-  const [sampleRoot, setSampleRoot] = useState<THREE.Object3D | null>(null);
-  const [sourceLabel, setSourceLabel] = useState<"loading" | "glb" | "obj" | "none">(
-    "loading"
-  );
+  const sharedData = useBrainSharedData();
+  const sourceLabel = sharedData?.source ?? "loading";
+  const sampled = sharedData?.sampled ?? null;
+  const spots = sharedData?.spots ?? null;
 
   const groupRef = useRef<THREE.Group>(null);
   const pointsRef = useRef<THREE.Points>(null);
@@ -149,96 +124,16 @@ export const BrainPoints = ({
   const physicsRef = useRef<BrainPhysicsState | null>(null);
   const leaderAnchorRef = useRef(new THREE.Vector3(0, 0, 0));
   const baseOpacityRef = useRef(POINT_OPACITY);
+  const navigationPoseRef = useRef<BrainPose>({
+    position: [0, 0, 0],
+    quaternion: [0, 0, 0, 1],
+    scale: 1
+  });
 
   const pointTexture = useMemo(
     () => (typeof document === "undefined" ? null : createPointSpriteTexture()),
     []
   );
-
-  useEffect(() => {
-    if (!raycaster.params.Points) {
-      raycaster.params.Points = { threshold: PICK_THRESHOLD };
-    } else {
-      raycaster.params.Points.threshold = PICK_THRESHOLD;
-    }
-  }, [raycaster]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const setRootIfActive = (root: THREE.Object3D, source: "glb" | "obj") => {
-      if (cancelled) {
-        return;
-      }
-      setSampleRoot(root);
-      setSourceLabel(source);
-    };
-
-    const loadObjFallback = async () => {
-      try {
-        const loader = new OBJLoader();
-        const [left, right] = await Promise.all([
-          loadObject(loader, "/assets/brain/lh_pial.obj"),
-          loadObject(loader, "/assets/brain/rh_pial.obj")
-        ]);
-
-        const group = new THREE.Group();
-        group.name = "obj-fallback";
-        group.add(left);
-        group.add(right);
-        group.updateWorldMatrix(true, true);
-        setRootIfActive(group, "obj");
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to load cortex OBJ fallback:", error);
-          setSourceLabel("none");
-        }
-      }
-    };
-
-    const gltfLoader = new GLTFLoader();
-    gltfLoader.load(
-      "/assets/brain/cortex.glb",
-      (gltf) => {
-        if (cancelled) {
-          return;
-        }
-
-        if (countMeshes(gltf.scene) > 0) {
-          setRootIfActive(gltf.scene, "glb");
-          return;
-        }
-
-        void loadObjFallback();
-      },
-      undefined,
-      () => {
-        void loadObjFallback();
-      }
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const sampled = useMemo(() => {
-    if (!sampleRoot) {
-      return null;
-    }
-
-    return sampleCortexSurface(sampleRoot, {
-      pointCount: POINT_COUNT_TOTAL
-    });
-  }, [sampleRoot]);
-
-  const spots: BrainSpotsData | null = useMemo(() => {
-    if (!sampled) {
-      return null;
-    }
-
-    return buildBrainSpots(sampled.restPositions, { spotFraction: SPOT_FRACTION });
-  }, [sampled]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "development" || !spots) {
@@ -263,7 +158,7 @@ export const BrainPoints = ({
       return null;
     }
 
-    return createBrainPhysicsState(sampled.restPositions, sampled.brainRadius);
+    return createBrainPhysicsState(sampled.restPositions, sampled.restNormals);
   }, [sampled]);
 
   useEffect(() => {
@@ -312,8 +207,9 @@ export const BrainPoints = ({
 
   // Hover state is nav-only; debug preview is fallback-only in development.
   const activeHoverSection = hoveredSectionId ?? debugPreviewSectionId;
-  const focusSectionId = isModalOpen ? null : activeHoverSection;
-  const highlightSectionId = isModalOpen ? null : activeHoverSection;
+  const activeInteractiveSection = navigationSectionId ?? activeHoverSection;
+  const focusSectionId = isModalOpen ? null : activeInteractiveSection;
+  const highlightSectionId = isModalOpen ? null : activeInteractiveSection;
 
   useEffect(() => {
     if (!spots || !highlightSectionId) {
@@ -323,23 +219,6 @@ export const BrainPoints = ({
     const anchor = spots.anchorPointBySection[highlightSectionId];
     leaderAnchorRef.current.set(anchor[0], anchor[1], anchor[2]);
   }, [highlightSectionId, spots]);
-
-  const onBrainClick = useCallback(
-    (event: ThreeEvent<MouseEvent>) => {
-      if (!spots || isModalOpen || typeof event.index !== "number") {
-        return;
-      }
-
-      const sectionId = spots.spotSectionLookup[event.index];
-      if (!sectionId) {
-        return;
-      }
-
-      event.stopPropagation();
-      openSection(sectionId);
-    },
-    [isModalOpen, openSection, spots]
-  );
 
   useEffect(() => {
     return () => {
@@ -352,13 +231,8 @@ export const BrainPoints = ({
       if (debugBoundsGeometry) {
         debugBoundsGeometry.dispose();
       }
-      if (sampled) {
-        sampled.debugMeshGeometries.forEach((debugGeometry) => {
-          debugGeometry.dispose();
-        });
-      }
     };
-  }, [debugBoundsGeometry, geometry, pointTexture, sampled]);
+  }, [debugBoundsGeometry, geometry, pointTexture]);
 
   useFrame((state, dt) => {
     if (!sampled || !geometry || !physicsRef.current || !spots) {
@@ -373,8 +247,11 @@ export const BrainPoints = ({
     }
 
     const pointer = pointerRef.current;
-    const pointerX = pointer?.inside ? clamp(pointer.x, -1, 1) : 0;
-    const pointerY = pointer?.inside ? clamp(pointer.y, -1, 1) : 0;
+    const isNavigating = Boolean(navigationSectionId);
+    const pointerX =
+      pointer?.inside && !isNavigating ? clamp(pointer.x, -1, 1) : 0;
+    const pointerY =
+      pointer?.inside && !isNavigating ? clamp(pointer.y, -1, 1) : 0;
 
     let motionScale = 1;
     if (prefersReducedMotion) {
@@ -407,13 +284,32 @@ export const BrainPoints = ({
       }
       Q_FOCUS.setFromUnitVectors(ANCHOR_VECTOR, TARGET_FORWARD);
 
-      Q_TARGET.copy(Q_FOCUS).slerp(Q_CURSOR, CURSOR_BLEND_WHILE_FOCUS);
+      Q_TARGET
+        .copy(Q_FOCUS)
+        .slerp(
+          Q_CURSOR,
+          isNavigating ? NAVIGATION_CURSOR_BLEND : CURSOR_BLEND_WHILE_FOCUS
+        );
       group.quaternion.slerp(Q_TARGET, FOCUS_SLERP);
     } else {
       group.quaternion.slerp(Q_CURSOR, ROTATION_LERP);
     }
 
-    group.scale.setScalar(1);
+    const targetScale = isNavigating ? NAVIGATION_SCALE_TARGET : 1;
+    const nextScale = lerp(
+      group.scale.x,
+      targetScale,
+      isNavigating ? NAVIGATION_TRANSFORM_LERP : 0.12
+    );
+    group.scale.setScalar(nextScale);
+    const targetY = isNavigating ? NAVIGATION_Y_TARGET : 0;
+    group.position.y = lerp(
+      group.position.y,
+      targetY,
+      isNavigating ? NAVIGATION_TRANSFORM_LERP : 0.1
+    );
+    group.position.x = lerp(group.position.x, 0, 0.12);
+    group.position.z = lerp(group.position.z, 0, 0.12);
 
     const targetOpacity = highlightSectionId ? POINT_OPACITY * DIM_FACTOR : POINT_OPACITY;
     baseOpacityRef.current = lerp(baseOpacityRef.current, targetOpacity, 0.18);
@@ -426,45 +322,54 @@ export const BrainPoints = ({
       y: pointer?.inside ? pointerY : 999
     };
 
-    let cursorPoint: { x: number; y: number; z: number } | null = null;
+    let cursorPx: { x: number; y: number } | null = null;
 
-    if (
-      pointer?.inside &&
-      isPointerNearBrainProjection({
-        pointerNdc,
-        camera: state.camera,
-        points,
-        brainRadius: sampled.brainRadius
-      })
-    ) {
-      POINTER_VECTOR.set(pointerNdc.x, pointerNdc.y);
-      RAYCASTER.setFromCamera(POINTER_VECTOR, state.camera);
-      const hit = RAYCASTER.ray.intersectPlane(PLANE, INTERSECTION_WORLD);
-
-      if (hit) {
-        INTERSECTION_LOCAL.copy(INTERSECTION_WORLD);
-        group.worldToLocal(INTERSECTION_LOCAL);
-        cursorPoint = {
-          x: INTERSECTION_LOCAL.x,
-          y: INTERSECTION_LOCAL.y,
-          z: INTERSECTION_LOCAL.z
-        };
-      }
+    if (pointer?.inside && !isNavigating) {
+      cursorPx = {
+        x: (pointerNdc.x * 0.5 + 0.5) * state.size.width,
+        y: (1 - (pointerNdc.y * 0.5 + 0.5)) * state.size.height
+      };
     }
 
     const physicsActive =
-      !isModalOpen && !prefersReducedMotion && !isScrolling && Boolean(cursorPoint);
+      !isNavigating &&
+      !isModalOpen &&
+      !prefersReducedMotion &&
+      !isScrolling &&
+      Boolean(cursorPx);
+
+    group.updateWorldMatrix(true, false);
+    group.getWorldQuaternion(Q_WORLD);
 
     updateBrainPhysics(physicsRef.current, {
       dt,
       isActive: physicsActive,
-      cursorPoint
+      cursorPx,
+      viewportWidth: state.size.width,
+      viewportHeight: state.size.height,
+      camera: state.camera,
+      groupMatrixWorld: group.matrixWorld,
+      groupQuaternionWorld: Q_WORLD
     });
 
     const positionAttribute = geometry.getAttribute(
       "position"
     ) as THREE.BufferAttribute;
     positionAttribute.needsUpdate = true;
+
+    if (onNavigationPose) {
+      navigationPoseRef.current = {
+        position: [group.position.x, group.position.y, group.position.z],
+        quaternion: [
+          group.quaternion.x,
+          group.quaternion.y,
+          group.quaternion.z,
+          group.quaternion.w
+        ],
+        scale: group.scale.x
+      };
+      onNavigationPose(navigationPoseRef.current);
+    }
   });
 
   if (!sampled || !geometry || !spots || !basePositionAttribute) {
@@ -527,7 +432,6 @@ export const BrainPoints = ({
       <points
         ref={pointsRef}
         geometry={geometry}
-        onClick={onBrainClick}
       >
         <pointsMaterial
           ref={baseMaterialRef}

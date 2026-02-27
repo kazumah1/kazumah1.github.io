@@ -50,6 +50,7 @@ export interface MeshPointAllocation {
 
 export interface SampledBrainData {
   restPositions: Float32Array;
+  restNormals: Float32Array;
   baseColors: Float32Array;
   pointCount: number;
   brainRadius: number;
@@ -794,6 +795,7 @@ export const sampleCortexSurface = (
 
   return {
     restPositions: positions,
+    restNormals: normals,
     baseColors,
     pointCount: totalPoints,
     brainRadius: Math.max(BRAIN_RADIUS, normalized.radius * 1.02),
