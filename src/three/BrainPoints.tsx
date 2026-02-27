@@ -114,7 +114,6 @@ export const BrainPoints = ({
   debugShowAllSpots
 }: BrainPointsProps): JSX.Element => {
   const sharedData = useBrainSharedData();
-  const sourceLabel = sharedData?.source ?? "loading";
   const sampled = sharedData?.sampled ?? null;
   const spots = sharedData?.spots ?? null;
 
@@ -381,24 +380,10 @@ export const BrainPoints = ({
             color="#d3dbeb"
             wireframe
             transparent
-            opacity={0.14}
+            opacity={0.12}
             depthWrite={false}
           />
         </mesh>
-        <Html
-          position={[0, -1.18, 0]}
-          center
-          style={{
-            color: "#9ba3b2",
-            fontFamily: "IBM Plex Mono, monospace",
-            fontSize: "10px",
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-            letterSpacing: "0.16em"
-          }}
-        >
-          loading cortex source: {sourceLabel}
-        </Html>
       </group>
     );
   }
@@ -533,8 +518,7 @@ export const BrainPoints = ({
             }}
           >
             <div>
-              source: {sourceLabel} | meshes: {sampled.meshCount} | points:{" "}
-              {sampled.pointCount}
+              meshes: {sampled.meshCount} | points: {sampled.pointCount}
             </div>
             <div>
               coverage: {(spots.coverageRatio * 100).toFixed(1)}% | {sectionList

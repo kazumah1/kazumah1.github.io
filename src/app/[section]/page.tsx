@@ -14,9 +14,7 @@ interface SectionRouteProps {
 export const generateStaticParams = () =>
   sectionPageOrder.map((sectionId) => ({ section: sectionId }));
 
-export const generateMetadata = ({
-  params
-}: SectionRouteProps): Metadata => {
+export const generateMetadata = ({ params }: SectionRouteProps): Metadata => {
   if (!isSectionId(params.section)) {
     return {};
   }
@@ -24,13 +22,11 @@ export const generateMetadata = ({
   const section = sectionPages[params.section];
   return {
     title: `${section.title} | ${siteContent.siteConfig.name}`,
-    description: section.shortDescription
+    description: section.dek
   };
 };
 
-export default function SectionPage({
-  params
-}: SectionRouteProps): JSX.Element {
+export default function SectionPage({ params }: SectionRouteProps): JSX.Element {
   if (!isSectionId(params.section)) {
     notFound();
   }

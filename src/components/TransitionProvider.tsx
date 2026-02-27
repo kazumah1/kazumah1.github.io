@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
@@ -17,23 +17,16 @@ interface TransitionContextValue {
   transitioningSectionId: SectionId | null;
   isTransitioning: boolean;
   startSectionTransition: (sectionId: SectionId) => void;
-  updateLandingPose: (pose: BrainPose) => void;
-  readLandingPose: (sectionId: SectionId) => BrainPose | null;
   finishSectionTransition: () => void;
   clearSectionTransition: () => void;
 }
 
 const TransitionContext = createContext<TransitionContextValue | null>(null);
 
-export const TransitionProvider = ({
-  children
-}: {
-  children: ReactNode;
-}): JSX.Element => {
+export const TransitionProvider = ({ children }: { children: ReactNode }): JSX.Element => {
   const [transitioningSectionId, setTransitioningSectionId] =
     useState<SectionId | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const landingPoseRef = useRef<BrainPose | null>(null);
 
   useEffect(() => {
     void preloadBrainSharedData();
@@ -44,28 +37,16 @@ export const TransitionProvider = ({
     setIsTransitioning(true);
   }, []);
 
-  const updateLandingPose = useCallback((pose: BrainPose) => {
-    landingPoseRef.current = pose;
-  }, []);
-
-  const readLandingPose = useCallback(
-    (sectionId: SectionId): BrainPose | null => {
-      if (sectionId !== transitioningSectionId) {
-        return null;
-      }
-      return landingPoseRef.current;
-    },
-    [transitioningSectionId]
-  );
-
   const finishSectionTransition = useCallback(() => {
     setIsTransitioning(false);
+    window.setTimeout(() => {
+      setTransitioningSectionId(null);
+    }, 120);
   }, []);
 
   const clearSectionTransition = useCallback(() => {
     setIsTransitioning(false);
     setTransitioningSectionId(null);
-    landingPoseRef.current = null;
   }, []);
 
   const value = useMemo(
@@ -73,20 +54,10 @@ export const TransitionProvider = ({
       transitioningSectionId,
       isTransitioning,
       startSectionTransition,
-      updateLandingPose,
-      readLandingPose,
       finishSectionTransition,
       clearSectionTransition
     }),
-    [
-      clearSectionTransition,
-      finishSectionTransition,
-      isTransitioning,
-      readLandingPose,
-      startSectionTransition,
-      transitioningSectionId,
-      updateLandingPose
-    ]
+    [clearSectionTransition, finishSectionTransition, isTransitioning, startSectionTransition, transitioningSectionId]
   );
 
   return <TransitionContext.Provider value={value}>{children}</TransitionContext.Provider>;

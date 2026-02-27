@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { EdgeNav } from "@/components/EdgeNav";
 import { Header } from "@/components/Header";
+import { useTransitionProvider } from "@/components/TransitionProvider";
 import type { SectionId } from "@/content/siteContent";
 import { siteContent } from "@/content/siteContent";
-import { useTransitionProvider } from "@/components/TransitionProvider";
 import { usePrefersReducedMotion, useScrollActivity } from "@/lib/hooks";
 import { useUIStore } from "@/lib/store";
 import { BrainScene } from "@/three/BrainScene";
@@ -16,30 +16,26 @@ import { preloadBrainSharedData } from "@/three/brainShared";
 export const HomeClient = (): JSX.Element => {
   const router = useRouter();
   const navigationTimeoutRef = useRef<number | null>(null);
-  const hasPushedRef = useRef(false);
   const prefetchedRoutesRef = useRef<Set<SectionId>>(new Set());
-  const [navigatingSectionId, setNavigatingSectionId] = useState<SectionId | null>(
-    null
-  );
+  const [navigatingSectionId, setNavigatingSectionId] = useState<SectionId | null>(null);
 
   const hoveredSectionId = useUIStore((state) => state.hoveredSectionId);
-
   const setHover = useUIStore((state) => state.setHover);
-  const setPrefersReducedMotion = useUIStore(
-    (state) => state.setPrefersReducedMotion
-  );
+  const setPrefersReducedMotion = useUIStore((state) => state.setPrefersReducedMotion);
   const setScrolling = useUIStore((state) => state.setScrolling);
 
   const prefersReducedMotion = usePrefersReducedMotion();
   const isScrolling = useScrollActivity(250);
-  const {
-    startSectionTransition,
-    updateLandingPose
-  } = useTransitionProvider();
+  const { isTransitioning, startSectionTransition } = useTransitionProvider();
 
   useEffect(() => {
     setPrefersReducedMotion(prefersReducedMotion);
   }, [prefersReducedMotion, setPrefersReducedMotion]);
+
+  useLayoutEffect(() => {
+    setHover(null);
+    setNavigatingSectionId(null);
+  }, [setHover]);
 
   useEffect(() => {
     setScrolling(isScrolling);
@@ -61,14 +57,6 @@ export const HomeClient = (): JSX.Element => {
     };
   }, []);
 
-  const handleNavigationPose = (pose: {
-    position: [number, number, number];
-    quaternion: [number, number, number, number];
-    scale: number;
-  }) => {
-    updateLandingPose(pose);
-  };
-
   const handleSectionSelect = (sectionId: SectionId) => {
     if (navigatingSectionId) {
       return;
@@ -77,23 +65,11 @@ export const HomeClient = (): JSX.Element => {
     startSectionTransition(sectionId);
     setHover(sectionId);
     setNavigatingSectionId(sectionId);
-    hasPushedRef.current = false;
-
-    const transitionDurationMs = 760;
-
-    if (navigationTimeoutRef.current !== null) {
-      window.clearTimeout(navigationTimeoutRef.current);
-    }
-
     void preloadBrainSharedData();
 
     navigationTimeoutRef.current = window.setTimeout(() => {
-      if (hasPushedRef.current) {
-        return;
-      }
-      hasPushedRef.current = true;
       router.push(`/${sectionId}`);
-    }, transitionDurationMs);
+    }, 70);
   };
 
   const handleHover = (sectionId: SectionId | null) => {
@@ -107,11 +83,12 @@ export const HomeClient = (): JSX.Element => {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-bg text-fg">
-      <div className="absolute inset-0">
-        <BrainScene
-          navigationSectionId={navigatingSectionId}
-          onNavigationPose={handleNavigationPose}
-        />
+      <div
+        className={`absolute inset-0 transition-opacity duration-100 ${
+          isTransitioning ? "opacity-0" : "opacity-100"
+        }`}
+      >
+        <BrainScene navigationSectionId={navigatingSectionId} />
       </div>
 
       <div>
@@ -124,7 +101,6 @@ export const HomeClient = (): JSX.Element => {
           onSelect={handleSectionSelect}
         />
       </div>
-
     </main>
   );
 };

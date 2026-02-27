@@ -77,7 +77,7 @@ export const siteContent: SiteContent = {
       email: "mailto:you@example.com"
     },
     seo: {
-      title: "Kazuma Ito | Portfolio",
+      title: "Kazuma Hakushi | Portfolio",
       description:
         "Personal portfolio with focused work in engineering, leadership, and deep-tech interface design.",
       keywords: [

@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 
-import type { SectionPageItem, SectionItemMediaKind } from "@/content/sections";
+import type { EditorialMedia } from "@/content/editorialTypes";
 import { cn } from "@/lib/utils";
 
 interface ItemMediaProps {
-  item: SectionPageItem;
+  media?: EditorialMedia;
+  title: string;
   className?: string;
   sizes?: string;
   roundedClassName?: string;
@@ -18,30 +19,24 @@ const aspectClassMap: Record<"square" | "landscape" | "portrait", string> = {
   portrait: "aspect-[3/4]"
 };
 
-const resolveMediaKind = (item: SectionPageItem): SectionItemMediaKind => {
-  if (item.media?.kind) {
-    return item.media.kind;
-  }
-  return item.image ? "image" : "none";
-};
-
 export const ItemMedia = ({
-  item,
+  media,
+  title,
   className,
-  sizes = "(max-width: 768px) 112px, 128px",
-  roundedClassName = "rounded-2xl"
+  sizes = "(max-width: 768px) 100vw, 180px",
+  roundedClassName = "rounded-[18px]"
 }: ItemMediaProps): JSX.Element => {
-  const mediaKind = resolveMediaKind(item);
-  const src = item.media?.src ?? item.image;
-  const alt = item.media?.alt ?? `${item.title} media`;
-  const aspect = item.media?.aspect ?? "landscape";
-  const placeholderMonogram = item.media?.placeholderMonogram ?? item.title.slice(0, 1);
-  const placeholderText = item.media?.placeholderText ?? "Preview";
+  const mediaKind = media?.kind ?? "none";
+  const aspect = media?.aspect ?? "landscape";
+  const src = media?.src;
+  const alt = media?.alt ?? `${title} media`;
+  const placeholderMonogram = media?.placeholderMonogram ?? title.slice(0, 1);
+  const placeholderText = media?.placeholderText ?? "Preview";
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden border border-fg/12 bg-[#10141b]",
+        "relative overflow-hidden border border-fg/10 bg-fg/[0.025]",
         roundedClassName,
         aspectClassMap[aspect],
         className
@@ -59,21 +54,21 @@ export const ItemMedia = ({
 
       {mediaKind === "logo" ? (
         src ? (
-          <div className="relative h-full w-full p-4">
+          <div className="relative h-full w-full p-5">
             <Image
               src={src}
               alt={alt}
               fill
               sizes={sizes}
-              className="object-contain p-4 transition duration-200 ease-out group-hover:contrast-110"
+              className="object-contain p-5 transition duration-200 ease-out group-hover:contrast-110"
             />
           </div>
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-            <span className="font-mono text-lg uppercase tracking-[0.12em] text-fg/74">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5">
+            <span className="font-mono text-lg uppercase tracking-[0.12em] text-fg/76">
               {placeholderMonogram}
             </span>
-            <span className="font-mono text-[0.56rem] uppercase tracking-[0.13em] text-fg/50">
+            <span className="font-mono text-[0.56rem] uppercase tracking-[0.13em] text-fg/46">
               {placeholderText}
             </span>
           </div>
