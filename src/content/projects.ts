@@ -106,6 +106,59 @@ export const projectCaseStudies: ProjectCaseStudy[] = [
     ]
   },
   {
+      slug: "beehonest",
+      title: "BeeHonest",
+      year: "2025",
+      dek:
+        "BeeHonest is an agentic debate copilot that structures live and recorded speech into claims and argument flows, detects logical fallacies, and invokes fact-checking tools to generate source-backed verdicts in near real time. Built with Next.js and FastAPI, it integrates streaming transcription, the Claude API for reasoning, ElevenLabs for audio processing, and Factiverse for evidence retrieval, surfacing source-linked overlays and timestamped notes across a live-viewing interface.",
+      tags: ["Next.js", "FastAPI", "Claude API", "ElevenLabs", "Factiverse"],
+      media: {
+        kind: "image",
+        src: "/images/beehonest.png",
+        alt: "BeeHonest interface",
+        aspect: "landscape"
+      },
+      heroMedia: {
+        type: "image",
+        src: "/images/beehonest.png",
+        alt: "BeeHonest interface",
+        aspect: "landscape"
+      },
+      links: [],
+      sections: [
+        {
+          id: "context",
+          heading: "Context",
+          body:
+            "Live debate claims move faster than manual fact-checking can follow, and most fact-checking tools operate after the fact rather than during the event itself. We wanted a system that could keep pace with a live or recorded debate: transcribing speech, extracting discrete claims, and routing them to verification without breaking the flow of watching."
+        },
+        {
+          id: "what-i-built",
+          heading: "What I built",
+          body:
+            "I built an agentic pipeline that structures streaming transcription into claims and argument flows, detects logical fallacies, and invokes fact-checking tools against Factiverse to generate source-backed verdicts. The Claude API drives the reasoning layer that segments speech into checkable claims and decides when a fact-check is warranted, while ElevenLabs handles audio transcription."
+          },
+        {
+          id: "system-design",
+          heading: "System design",
+          body:
+            "The Next.js frontend renders two parallel outputs for anything the pipeline flags: an inline overlay for claims that need to be seen the moment they're made, and a timestamped note for lower-priority items to review after the debate. The FastAPI backend owns transcription ingestion, claim segmentation, and evidence retrieval, keeping the reasoning pipeline decoupled from what gets rendered."
+        },
+        {
+          id: "tradeoffs",
+          heading: "Tradeoffs",
+          body:
+            "The harder problem wasn't generating fact-check data, it was deciding what a viewer should see live versus later. Surfacing every flagged claim as an inline overlay would clutter the screen during fast exchanges, so overlays were reserved for claims with immediate relevance and everything else was pushed to timestamped notes."
+        },
+        {
+          id: "result",
+          heading: "Result",
+          body:
+            "BeeHonest won 1st place at Claude AI Hacks 2025."
+        }
+      ]
+    },
+  {
     slug: "wingman",
     title: "Wingman",
     year: "2025",

@@ -29,10 +29,67 @@ export const sectionPageOrder: SectionId[] = [
 
 const experienceItems: AccordionEntry[] = [
   {
+    id: "exp-tesla",
+    role: "Incoming Systems Integration Engineer Intern",
+    org: "Tesla",
+    dates: "2027",
+    tags: [
+    ],
+    summary:
+        "",
+    body: [],
+    sections: {
+    },
+    media: {
+      type: "image",
+      src: "/images/tesla.png",
+      alt: "Tesla logo"
+    },
+    links: []
+  },
+  {
+    id: "exp-amazon",
+    role: "SPL - SDE (ML) Intern",
+    org: "Amazon",
+    dates: "2026",
+    tags: [
+      "Python",
+      "Compuer Vision",
+      "PyTorch",
+      "RF-DETR",
+      "ByteTrack",
+      "Random Forest",
+      "LSTM",
+      "Edge deployment",
+      "VLM inference",
+      "Model evaluation",
+      "AWS",
+      "MECE"
+    ],
+    summary:
+        "Deployed a conveyor-jam detection system across fulfillment centers using an RF-DETR/ByteTrack tracking pipeline and a two-stage Random Forest classifier, served as both a cloud batch job and a real-time edge detector. Redirected the modeling roadmap from tuning to data quality after benchmarking model families under a rigorous validation harness.",
+    body: [],
+    sections: {
+      whatIBuilt: [
+        "- Deployed detection system across 2 fulfillment centers, surfacing jams missed by PLC sensors",
+        "- Built RF-DETR/ByteTrack pipeline with a two-stage Random Forest classifier for root-cause classification",
+        "- Served the pipeline as both a cloud batch job and a real-time edge detector",
+        "- Benchmarked 9 model families (tree ensembles, sequence models, self-supervised embeddings, VLMs)",
+        "- Built a 20+-seed paired validation harness with held-out-camera evaluation, tightening confidence intervals 3-5x"
+      ]
+    },
+    media: {
+      type: "image",
+      src: "/images/amazon.jpg",
+      alt: "Amazon logo"
+    },
+    links: []
+  },
+  {
     id: "exp-qualcomm",
     role: "Technical Project Manager Intern (Contracted)",
     org: "Qualcomm",
-    dates: "2025 - Present",
+    dates: "2025 - 2026",
     tags: [
       "Python",
       "TypeScript",
@@ -68,7 +125,7 @@ const experienceItems: AccordionEntry[] = [
     id: "exp-demind",
     role: "Machine Learning Software Engineering Intern",
     org: "DeMind",
-    dates: "2025",
+    dates: "2024 - 2025",
     tags: [
       "Python",
       "Signal processing",
@@ -138,40 +195,45 @@ const experienceItems: AccordionEntry[] = [
 ];
 
 const leadershipItems: AccordionEntry[] = [
-  {
-    id: "lead-valley-project-lead",
-    role: "Project Lead",
-    org: "Valley Consulting Group",
-    dates: "2025 - Present",
-    tags: [
-      "System design",
-      "LLM agents",
-      "Finance data modeling",
-      "Architecture reviews",
-      "Decision logs",
-      "Technical leadership",
-      "Project scoping",
-      "Risk framing",
-      "Cross-team coordination"
-    ],
-    summary:
-      "Led a 10-person engineering team delivering an AI-powered financial intelligence strategy and LLM agent for a Fortune 500 / Big Tech client. Focused on scoping, system design, and decision quality rather than process overhead.",
-    body: [],
-    sections: {
-      results: [
-        "- Defined architecture and milestone structure",
-        "- Translated finance workflows into grounded LLM capabilities",
-        "- Established reusable design review patterns",
-        "- Reduced late-stage architectural reversals"
-      ]
-    },
-    media: {
-      type: "image",
-      src: "/images/valley.png",
-      alt: "Valley Consulting Group logo"
-    },
-    links: []
+    {
+  id: "lead-valley-project-lead",
+  role: "VP of Development + Project Lead",
+  org: "Valley Consulting Group",
+  dates: "VP of Development: 2026 - Present \nProject Lead: 2025 - 2026",
+  tags: [
+    "System design",
+    "LLM agents",
+    "Finance data modeling",
+    "Architecture reviews",
+    "Technical leadership",
+    "Project scoping",
+    "Risk framing",
+    "Cross-team coordination",
+    "Curriculum design",
+    "Organizational diagnosis"
+  ],
+  summary:
+    "Led a 10-person engineering team delivering an AI-powered financial intelligence strategy and LLM agent for a Fortune 500 / Big Tech client as Project Lead, then moved into VP of Development to redesign the club's technical curriculum after diagnosing a structural mismatch between the program's breadth-first format and members who already knew their target field.",
+  body: [],
+  sections: {
+    whatIBuilt: [
+      "- Defined architecture and milestone structure",
+      "- Translated finance workflows into grounded LLM capabilities",
+      "- Established reusable design review patterns",
+      "- Reduced late-stage architectural reversals",
+      "- Diagnosed that the Dev curriculum's breadth-first career exploration format underserved members who already knew their target field and needed depth instead",
+      "- Redesigned the curriculum around differentiated assignments for members with meaningfully different starting points",
+      "- Replaced concept-intro exercises with longer project-based deliverables and a scoped capstone model",
+      "- Rebuilt assignments to require AI-literacy and critical thinking rather than tasks completable in a few prompts"
+    ]
   },
+  media: {
+    type: "image",
+    src: "/images/valley.png",
+    alt: "Valley Consulting Group logo"
+  },
+  links: []
+},
   {
     id: "lead-neurotech-software-lead",
     role: "Software Division Lead",
