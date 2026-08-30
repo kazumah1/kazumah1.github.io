@@ -85,8 +85,7 @@ export const projectCaseStudies: ProjectCaseStudy[] = [
         body:
           "I wanted a system that could generate a personalized research feed without flattening papers into keyword blobs. Academic documents contain structure, citation relationships, and dense semantics that most feeds ignore."
       },
-      {
-        id: "what-i-built",
+      { id: "what-i-built",
         heading: "What I built",
         body:
           "Atlas ingests raw PDFs into object storage, extracts structured text and figures, splits content by section, and inserts both vector embeddings and tsvector indexes into Postgres. Search combines symbolic filters (author, venue, year) with semantic similarity, and ranking incorporates recency and topic affinity."
